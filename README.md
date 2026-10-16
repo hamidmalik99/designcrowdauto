@@ -90,7 +90,7 @@ Push this folder to a **private** GitHub repo.
 1. Create a blank Google Sheet. Copy its ID from the URL (`/d/<ID>/edit`).
 2. Google Cloud Console: create a project, enable the **Google Sheets API**, then create a **Service account** with a JSON key.
 3. Share the sheet with the service account's email as **Editor**.
-4. Run locally:
+4. Run locally (or skip this: after step 7, run the workflow with step `setup`):
    ```bash
    pip install -r requirements.txt
    cp .env.example .env   # fill in SHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON (path or one-line JSON)

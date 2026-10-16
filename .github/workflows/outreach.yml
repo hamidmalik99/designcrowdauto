@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       step:
-        description: "daily | send | inbox | summary"
+        description: "setup | daily | send | inbox | summary  (run setup once first)"
         default: "daily"
       dry_run:
         description: "Force dry-run (true/false)"
@@ -63,4 +63,8 @@ jobs:
           else
             STEP="send"; ARGS=""
           fi
-          python main.py $STEP $ARGS
+          if [ "$STEP" = "setup" ]; then
+            python scripts/setup_sheet.py
+          else
+            python main.py $STEP $ARGS
+          fi
