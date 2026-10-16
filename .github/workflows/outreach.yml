@@ -1,0 +1,66 @@
+name: outreach
+
+on:
+  schedule:
+    # Daily pipeline + morning summary: 21:00 UTC = 7am AEST / 8am AEDT (1am-2am Lahore).
+    - cron: "0 21 * * *"
+    # Send step, hourly. Recipient-local Tue-Thu 9am-4pm across AU/NZ/UK/US/CA falls inside UTC Mon-Fri.
+    # Each run exits within seconds when nothing is due, so idle runs cost ~1 minute.
+    - cron: "7 * * * 1-5"
+  workflow_dispatch:
+    inputs:
+      step:
+        description: "daily | send | inbox | summary"
+        default: "daily"
+      dry_run:
+        description: "Force dry-run (true/false)"
+        default: "true"
+      limit:
+        description: "Max prospects to research (blank = Config RESEARCH_PER_RUN)"
+        default: ""
+
+concurrency:
+  group: outreach-sheet   # never let two runs write the sheet at once
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
+          HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          REPLY_TO_EMAIL: ${{ secrets.REPLY_TO_EMAIL }}
+          UNSUBSCRIBE_BASE_URL: ${{ secrets.UNSUBSCRIBE_BASE_URL }}
+          UNSUBSCRIBE_SECRET: ${{ secrets.UNSUBSCRIBE_SECRET }}
+          UNSUBSCRIBE_MAILTO: ${{ secrets.UNSUBSCRIBE_MAILTO }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            STEP="${{ inputs.step }}"
+            ARGS=""
+            [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
+            [ -n "${{ inputs.limit }}" ] && ARGS="$ARGS --limit ${{ inputs.limit }}"
+          elif [ "${{ github.event.schedule }}" = "0 21 * * *" ]; then
+            STEP="daily"; ARGS=""
+          else
+            STEP="send"; ARGS=""
+          fi
+          python main.py $STEP $ARGS
