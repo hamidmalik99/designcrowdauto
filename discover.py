@@ -45,6 +45,16 @@ def parse_brief(html: str, url: str = "") -> dict:
     Works from labelled fields (dt/dd, th/td, 'Label: value' lines) and JSON-LD.
     Returns {} if no identifiable business name is present.
     """
+    found = parse_brief_fields(html)
+    name = found.get("business_name", "")
+    if not name or ANON_NAMES.match(name) or len(name) < 2:
+        return {}
+    found["source_url"] = url
+    return found
+
+
+def parse_brief_fields(html: str) -> dict:
+    """Every field we can read from a brief page, plus its title; no name required."""
     soup = BeautifulSoup(html, "html.parser")
     found: dict[str, str] = {}
 
@@ -98,10 +108,11 @@ def parse_brief(html: str, url: str = "") -> dict:
         if found["website"] and "designcrowd" in found["website"].lower():
             found["website"] = ""
 
-    name = found.get("business_name", "")
-    if not name or ANON_NAMES.match(name) or len(name) < 2:
-        return {}
-    found["source_url"] = url
+    og = soup.find("meta", property="og:title")
+    h1 = soup.find("h1")
+    title = (og.get("content") if og else "") or (h1.get_text(" ") if h1 else "") or \
+        (soup.title.get_text(" ") if soup.title else "")
+    found["title"] = _clean(title)[:200]
     return found
 
 

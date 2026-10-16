@@ -24,6 +24,17 @@ send  (hourly)     inbox sync → auto-pause check → send due first emails + f
 | `scripts/setup_sheet.py` | creates the tabs, headers, Config defaults and the status dropdown |
 | `scripts/gmail_auth.py` | one-off: gets the Gmail read-only refresh token |
 
+## Just want a list of open jobs?
+
+No keys or setup needed. Use **either** of these:
+- **GitHub:** Actions → **outreach** → **Run workflow**, step `jobs`. When it finishes, download `designcrowd-jobs` (`jobs.csv`) from the run's page.
+- **Your computer:** `pip install -r requirements.txt && python scripts/list_jobs.py`, which writes `jobs.csv`.
+
+Each row has the business name (when the brief gives one), industry, location, website, job title and URL. It follows the same robots.txt and politeness rules as the full pipeline. When you write to them yourself, keep to the rules below:
+- Don't mention DesignCrowd or the contest.
+- Only use an address published on their own site.
+- Include your address and an opt-out line.
+
 ---
 
 ## DesignCrowd terms and robots.txt (read this first)
@@ -166,7 +177,7 @@ A row can also end as `skipped` (see `skip_reason`), `replied`, `bounced` or `un
 python main.py daily --dry-run --limit 10      # against the Google Sheet
 python main.py daily --dry-run --local state.json   # against a local JSON file
 python main.py send                            # sends only if Config allows
-python -m pytest -q                            # 36 offline tests, no keys needed
+python -m pytest -q                            # 37 offline tests, no keys needed
 ```
 
 ## Cost and Actions minutes

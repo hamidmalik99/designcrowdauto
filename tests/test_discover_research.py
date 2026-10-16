@@ -64,8 +64,8 @@ def test_discover_respects_manual_mode(store):
 def test_discover_adds_identifiable_briefs(store, monkeypatch):
     cfg = Settings({"DISCOVERY_MAX_PAGES": "2"})
     listing1 = cfg.get("DISCOVERY_LISTING_URL").format(page=1)
-    brief = "https://www.designcrowd.com/design/1234567"
-    anon = "https://www.designcrowd.com/design/7654321"
+    brief = "https://www.designcrowd.com/jobs/job/1234567"
+    anon = "https://www.designcrowd.com/logo-design/contest/7654321"
     f = FakeFetcher(pages={
         listing1: f'<a href="{brief}">a</a><a href="{anon}">b</a>',
         brief: BRIEF_HTML,
@@ -193,3 +193,24 @@ def test_research_skips_suppressed_domain_and_duplicates(store, live_cfg, monkey
                               "status": "new"})
     research.run_research(store, live_cfg, fetcher=FakeFetcher())
     assert row["status"] == "skipped" and "suppression" in row["skip_reason"]
+
+
+def test_list_jobs_collects_all_jobs_including_unnamed():
+    import re as _re
+    import sys as _sys
+    _sys.path.insert(0, "scripts")
+    import list_jobs
+    cfg = Settings({})
+    listing = cfg.get("DISCOVERY_LISTING_URL")
+    j1, j2 = "https://www.designcrowd.com/jobs/job/4113748", "https://www.designcrowd.com/logo-design/contest/3259402"
+    f = FakeFetcher(pages={
+        listing.format(page=1): f'<a href="{j1}?ref=x">a</a><a href="/logo-design/contest/3259402">b</a>'
+                                '<a href="/jobs/open/corporateidentity/">nav</a>',
+        j1: BRIEF_HTML,
+        j2: "<html><head><title>Logo brief for a company in United States</title></head><body></body></html>",
+    })
+    rows = list_jobs.collect(f, listing, _re.compile(cfg.get("DISCOVERY_BRIEF_URL_PATTERN")), 3, log=lambda m: None)
+    assert [r["url"] for r in rows] == [j1, j2]
+    assert rows[0]["business_name"] == "Harbour Plumbing Co" and rows[1]["business_name"] == ""
+    assert "United States" in rows[1]["title"]
+    assert list_jobs.collect(FakeFetcher(robots_ok=False), listing, _re.compile("x"), 3, log=lambda m: None) == []

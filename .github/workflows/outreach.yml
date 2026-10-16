@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       step:
-        description: "setup | daily | send | inbox | summary  (run setup once first)"
+        description: "jobs | setup | daily | send | inbox | summary  (jobs = CSV of open jobs, no keys needed)"
         default: "daily"
       dry_run:
         description: "Force dry-run (true/false)"
@@ -63,8 +63,17 @@ jobs:
           else
             STEP="send"; ARGS=""
           fi
-          if [ "$STEP" = "setup" ]; then
+          if [ "$STEP" = "jobs" ]; then
+            python scripts/list_jobs.py --out jobs.csv
+          elif [ "$STEP" = "setup" ]; then
             python scripts/setup_sheet.py
           else
             python main.py $STEP $ARGS
           fi
+      - name: Upload job list
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.step == 'jobs' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: designcrowd-jobs
+          path: jobs.csv
+          if-no-files-found: warn

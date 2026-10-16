@@ -35,9 +35,10 @@ CONFIG_DEFAULTS: dict[str, str] = {
     "MIN_QUALITY_SCORE": "5",
     "RESEARCH_PER_RUN": "25",
     "DISCOVERY_MODE": "auto",        # auto | manual
-    "DISCOVERY_LISTING_URL": "https://www.designcrowd.com/design-jobs/logo-design?page={page}",
-    # VERIFY both DISCOVERY_* values against the live site before relying on auto mode.
-    "DISCOVERY_BRIEF_URL_PATTERN": r"^https://www\.designcrowd\.com/(design|design-job|contest|project)s?/[^?#]*\d{5,}",
+    # Public "open logo & branding jobs" listing and brief URL shapes, taken from search-engine results
+    # (Oct 2026). The ?page= parameter is unconfirmed; page 1 works either way.
+    "DISCOVERY_LISTING_URL": "https://www.designcrowd.com/jobs/open/corporateidentity/?page={page}",
+    "DISCOVERY_BRIEF_URL_PATTERN": r"^https://www\.designcrowd\.com/(jobs/job|logo-design/contest)/\d+",
     "DISCOVERY_MAX_PAGES": "50",
     "SENDER_NAME": "Hamid Ali Asad",
     "SENDER_FIRST_NAME": "Ali",
