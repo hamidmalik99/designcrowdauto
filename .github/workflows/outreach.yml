@@ -25,11 +25,11 @@ concurrency:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 58
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -63,6 +63,14 @@ jobs:
           else
             STEP="send"; ARGS=""
           fi
+          if [ "$STEP" != "jobs" ] && { [ -z "$SHEET_ID" ] || [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; }; then
+            if [ "${{ github.event_name }}" = "schedule" ]; then
+              echo "::notice::Skipped scheduled '$STEP' run: SHEET_ID / GOOGLE_SERVICE_ACCOUNT_JSON secrets are not set yet."
+              exit 0
+            fi
+            echo "::error::'$STEP' needs the SHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON secrets (Settings > Secrets and variables > Actions). Only the 'jobs' step works without secrets."
+            exit 1
+          fi
           if [ "$STEP" = "jobs" ]; then
             python scripts/list_jobs.py --out jobs.csv
           elif [ "$STEP" = "setup" ]; then
@@ -72,7 +80,7 @@ jobs:
           fi
       - name: Upload job list
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.step == 'jobs' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: designcrowd-jobs
           path: jobs.csv
