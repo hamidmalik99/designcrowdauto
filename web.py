@@ -31,6 +31,8 @@ class PoliteFetcher:
         self._robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
         self._last_hit: dict[str, float] = {}
         self._cache: dict[str, requests.Response] = {}
+        self.robots_status: dict[str, str] = {}  # host -> HTTP status / error, for diagnostics
+        self.last_status: str = ""
 
     # --- robots --------------------------------------------------------
     def robots_for(self, url: str) -> urllib.robotparser.RobotFileParser | None:
@@ -41,6 +43,7 @@ class PoliteFetcher:
             rp = urllib.robotparser.RobotFileParser()
             try:
                 r = self.session.get(urljoin(base, "/robots.txt"), timeout=self.timeout)
+                self.robots_status[base] = str(r.status_code)
                 if r.status_code == 200:
                     rp.parse(r.text.splitlines())
                 elif r.status_code in (404, 410):
@@ -49,6 +52,7 @@ class PoliteFetcher:
                     rp = None  # 401/403/5xx: unknown -> treat as disallowed
             except requests.RequestException as e:
                 log.info("robots.txt fetch failed for %s: %s", base, e)
+                self.robots_status[base] = type(e).__name__
                 rp = None
             self._robots[base] = rp
         return self._robots[base]
@@ -83,7 +87,9 @@ class PoliteFetcher:
             r = self.session.get(url, timeout=self.timeout, allow_redirects=True)
         except requests.RequestException as e:
             log.info("fetch failed %s: %s", url, e)
+            self.last_status = type(e).__name__
             return None
+        self.last_status = str(r.status_code)
         body_head = r.text[:5000].lower() if "text" in r.headers.get("Content-Type", "") else ""
         if r.status_code in (403, 429) or (strict and any(m in body_head for m in CAPTCHA_MARKERS)):
             if strict:

@@ -33,7 +33,8 @@ COLUMNS = ["business_name", "industry", "location", "website", "title", "url"]
 
 def collect(fetcher, listing_tpl, brief_re, max_pages, log=print):
     if fetcher.robots_for("https://www.designcrowd.com/") is None:
-        log("robots.txt could not be read - stopping (treated as disallowed).")
+        status = getattr(fetcher, "robots_status", {}).get("https://www.designcrowd.com", "?")
+        log(f"robots.txt could not be read (HTTP {status}) - stopping (treated as disallowed).")
         return []
     if not fetcher.allowed(listing_tpl.format(page=1)):
         log("robots.txt disallows the jobs listing - stopping.")
@@ -44,6 +45,7 @@ def collect(fetcher, listing_tpl, brief_re, max_pages, log=print):
             url = listing_tpl.format(page=page)
             r = fetcher.get(url, strict=True, min_delay=5, max_delay=10)
             if r is None:
+                log(f"listing page {page} not fetched (HTTP {getattr(fetcher, 'last_status', '?')}): {url}")
                 break
             new = []
             for a in BeautifulSoup(r.text, "html.parser").find_all("a", href=True):
@@ -52,6 +54,12 @@ def collect(fetcher, listing_tpl, brief_re, max_pages, log=print):
                     new.append(href)
             log(f"listing page {page}: {len(new)} new job links")
             if not new:
+                if page == 1:
+                    hrefs = sorted({urljoin(url, a["href"]) for a in
+                                    BeautifulSoup(r.text, "html.parser").find_all("a", href=True)
+                                    if "designcrowd.com" in urljoin(url, a["href"])})
+                    log(f"no job links matched the pattern; page had {len(hrefs)} links, e.g. "
+                        + " ".join(h for h in hrefs if any(c.isdigit() for c in h))[:900])
                 break
             urls += new
 
@@ -106,18 +114,28 @@ def main():
     ap.add_argument("--pattern", default=CONFIG_DEFAULTS["DISCOVERY_BRIEF_URL_PATTERN"])
     args = ap.parse_args()
 
+    in_actions = os.getenv("GITHUB_ACTIONS") == "true"
+
+    def log(msg):
+        print(msg)
+        # Key lines also become run annotations, readable without opening the logs.
+        if in_actions and not msg.startswith("["):
+            print(f"::notice title=jobs::{msg}")
+
     rows = collect(PoliteFetcher(os.getenv("BOT_INFO_URL", "https://hamidbuilds.dev")),
-                   args.listing, re.compile(args.pattern), min(args.max_pages, 50))
+                   args.listing, re.compile(args.pattern), min(args.max_pages, 50), log=log)
     rows.sort(key=lambda r: (r["business_name"] == "", r["business_name"].lower()))
     with open(args.out, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=COLUMNS)
         w.writeheader()
         w.writerows(rows)
     named = sum(1 for r in rows if r["business_name"])
-    print(f"\nWrote {len(rows)} jobs ({named} name a business) to {args.out}")
+    log(f"Wrote {len(rows)} jobs ({named} name a business) to {args.out}")
     sheet_id, sa = os.getenv("SHEET_ID", ""), os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
     if rows and sheet_id and google_creds_available(sa):
-        append_to_sheet(rows, sheet_id, sa)
+        append_to_sheet(rows, sheet_id, sa, log=log)
+    elif rows:
+        log("Sheet not updated: SHEET_ID or Google credentials missing")
 
 
 if __name__ == "__main__":
