@@ -112,7 +112,13 @@ Push this folder to a **private** GitHub repo.
 
 ### 2b. Google access without a key (if key creation is blocked)
 
-If Google says "Service account key creation is disabled" (`iam.disableServiceAccountKeyCreation`), skip the JSON key. GitHub can log in as the service account directly with Workload Identity Federation. In [Cloud Shell](https://shell.cloud.google.com), run this, replacing the first two values:
+If Google says "Service account key creation is disabled" (`iam.disableServiceAccountKeyCreation`), skip the JSON key. GitHub can log in as the service account directly with Workload Identity Federation. In the [Cloud Shell](https://shell.cloud.google.com) terminal, run one line:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hamidmalik99/designcrowdauto/main/scripts/setup_wif.sh | bash -s YOUR_PROJECT_ID
+```
+
+It prints the two values for step 2 below. Or run the commands by hand, replacing the first two values:
 
 ```bash
 PROJECT_ID=your-project-id
