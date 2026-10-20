@@ -7,6 +7,10 @@ on:
     # Send step, hourly. Recipient-local Tue-Thu 9am-4pm across AU/NZ/UK/US/CA falls inside UTC Mon-Fri.
     # Each run exits within seconds when nothing is due, so idle runs cost ~1 minute.
     - cron: "7 * * * 1-5"
+  # Lets a run be started over the API: POST /repos/{owner}/{repo}/dispatches
+  # {"event_type": "run", "client_payload": {"step": "jobs", "dry_run": "true", "limit": ""}}
+  repository_dispatch:
+    types: [run]
   workflow_dispatch:
     inputs:
       step:
@@ -70,6 +74,11 @@ jobs:
             ARGS=""
             [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
             [ -n "${{ inputs.limit }}" ] && ARGS="$ARGS --limit ${{ inputs.limit }}"
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            STEP="${{ github.event.client_payload.step || 'jobs' }}"
+            ARGS=""
+            [ "${{ github.event.client_payload.dry_run }}" != "false" ] && ARGS="$ARGS --dry-run"
+            [ -n "${{ github.event.client_payload.limit }}" ] && ARGS="$ARGS --limit ${{ github.event.client_payload.limit }}"
           elif [ "${{ github.event.schedule }}" = "0 21 * * *" ]; then
             STEP="daily"; ARGS=""
           else
@@ -91,7 +100,7 @@ jobs:
             python main.py $STEP $ARGS
           fi
       - name: Upload job list
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.step == 'jobs' }}
+        if: ${{ always() && hashFiles('jobs.csv') != '' }}
         uses: actions/upload-artifact@v6
         with:
           name: designcrowd-jobs
