@@ -45,7 +45,7 @@ CONFIG_DEFAULTS: dict[str, str] = {
     "SENDER_TITLE": "WordPress Developer & SEO Specialist",
     "PORTFOLIO_URL": "https://hamidbuilds.dev",
     "BUSINESS_ADDRESS": "",          # REQUIRED before sending (CAN-SPAM / Spam Act)
-    "PROOF_EXAMPLE": "rebuilt a Sydney plumbing company's WordPress site and took mobile load time from 7s to under 2s",
+    "PROOF_EXAMPLE": "",             # one REAL past project; empty = emails cite no example
     "SUMMARY_TO": "",
     "SUMMARY_HOUR_UTC": "21",        # 21:00 UTC = 7am AEST / 8am AEDT
     "PAUSED_REASON": "",

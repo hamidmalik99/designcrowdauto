@@ -30,7 +30,7 @@ No keys or setup needed. Use **either** of these:
 - **GitHub:** Actions → **outreach** → **Run workflow**, step `jobs`. When it finishes, download `designcrowd-jobs` (`jobs.csv`) from the run's page.
 - **Your computer:** `pip install -r requirements.txt && python scripts/list_jobs.py`, which writes `jobs.csv`.
 
-Each row has the business name (when the brief gives one), industry, location, website, job title and URL. It follows the same robots.txt and politeness rules as the full pipeline. When you write to them yourself, keep to the rules below:
+Once the sheet secrets are set, the same run also adds any new jobs to your sheet's **Jobs** tab. Each row has the business name (when the brief gives one), industry, location, website, job title and URL. It follows the same robots.txt and politeness rules as the full pipeline. When you write to them yourself, keep to the rules below:
 - Don't mention DesignCrowd or the contest.
 - Only use an address published on their own site.
 - Include your address and an opt-out line.
@@ -108,7 +108,7 @@ Push this folder to a **private** GitHub repo.
    python scripts/setup_sheet.py
    ```
    This creates the `Prospects`, `Suppression`, `Config` and `Log` tabs, plus a status dropdown. The CSVs in `sheet_template/` show the same headers.
-5. In **Config**, fill in `BUSINESS_ADDRESS`, `SUMMARY_TO` and `PROOF_EXAMPLE` (a real, true project), and check the sender fields.
+5. In **Config**, fill in `BUSINESS_ADDRESS`, `SUMMARY_TO` and `PROOF_EXAMPLE` (one real past project; leave it empty and emails cite none), and check the sender fields.
 
 ### 3. Brevo
 1. Authenticate your sending domain (SPF, DKIM, DMARC) in Brevo → Senders & Domains, and verify `SENDER_EMAIL`. Send from `hamidbuilds.dev`, not a gmail address.

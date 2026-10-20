@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import gspread  # noqa: E402
 
 from config import CONFIG_DEFAULTS, Secrets  # noqa: E402
-from store import CONFIG_HEADERS, LOG_HEADERS, PROSPECT_HEADERS, SUPPRESSION_HEADERS  # noqa: E402
+from store import CONFIG_HEADERS, JOBS_HEADERS, LOG_HEADERS, PROSPECT_HEADERS, SUPPRESSION_HEADERS  # noqa: E402
 
 STATUSES = ["new", "researched", "skipped", "queued", "approved", "sent", "followup_1", "followup_2",
             "replied", "bounced", "unsubscribed", "done"]
@@ -35,7 +35,7 @@ def main():
     sh = gc.open_by_key(s.sheet_id)
     existing = {w.title: w for w in sh.worksheets()}
     for title, headers in [("Prospects", PROSPECT_HEADERS), ("Suppression", SUPPRESSION_HEADERS),
-                           ("Config", CONFIG_HEADERS), ("Log", LOG_HEADERS)]:
+                           ("Config", CONFIG_HEADERS), ("Log", LOG_HEADERS), ("Jobs", JOBS_HEADERS)]:
         ws = existing.get(title) or sh.add_worksheet(title, rows=1000, cols=len(headers) + 2)
         current = ws.row_values(1)
         if not current:
@@ -59,7 +59,7 @@ def main():
         "range": {"sheetId": p.id, "startRowIndex": 1, "startColumnIndex": status_col, "endColumnIndex": status_col + 1},
         "rule": {"condition": {"type": "ONE_OF_LIST", "values": [{"userEnteredValue": v} for v in STATUSES]},
                  "strict": True, "showCustomUi": True}}}]})
-    if "Sheet1" in existing and len(sh.worksheets()) > 4:
+    if "Sheet1" in existing and len(sh.worksheets()) > 5:
         try:
             sh.del_worksheet(existing["Sheet1"])
         except Exception:

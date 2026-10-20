@@ -46,8 +46,8 @@ Structure:
 2. Opener: one specific, true observation about THEIR website taken from the audit findings below \
 (or, if they have no website, the fact that they don't have one yet). Phrase it helpfully, not as criticism.
 3. Value: what a fast, modern WordPress site plus local SEO would do for a {industry_or_business} like theirs.
-4. Proof: one short paragraph - 5+ years WordPress/WooCommerce, white-label work for agencies in AU/UK/US/NZ, \
-and this example: {proof_example}.
+4. Proof: one short paragraph - 5+ years WordPress/WooCommerce, white-label work for agencies in AU/UK/US/NZ\
+{proof_example}.
 5. Close: one low-friction question, e.g. offering a free 3-point audit of their site or a quick mockup idea.
 
 Body length: 120-160 words (excluding nothing - count every word of the body).
@@ -170,7 +170,8 @@ def write_first_email(cfg: Settings, row: dict, generator=None) -> tuple[dict | 
     industry = row.get("industry") or ""
     prompt = FIRST_EMAIL_PROMPT.format(
         industry_or_business=industry.lower() if industry else "business",
-        proof_example=cfg.get("PROOF_EXAMPLE"),
+        proof_example=(f", and this example: {cfg.get('PROOF_EXAMPLE')}" if cfg.get("PROOF_EXAMPLE")
+                       else ". Do not mention any specific past project or client"),
         business_name=row["business_name"],
         prospect=prospect_facts(row),
     )

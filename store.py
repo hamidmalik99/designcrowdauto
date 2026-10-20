@@ -21,6 +21,7 @@ PROSPECT_HEADERS = [
 ]
 SUPPRESSION_HEADERS = ["value", "type", "reason", "source", "added_at"]
 CONFIG_HEADERS = ["key", "value", "notes"]
+JOBS_HEADERS = ["found_at", "business_name", "industry", "location", "website", "title", "url"]
 LOG_HEADERS = ["run_at", "step", "found", "researched", "skipped", "queued", "sent",
                "followups_sent", "replies", "bounces", "unsubscribes", "errors", "notes"]
 
