@@ -19,6 +19,10 @@ on:
         description: "Max prospects to research (blank = Config RESEARCH_PER_RUN)"
         default: ""
 
+permissions:
+  contents: read
+  id-token: write   # lets the keyless Google login (Workload Identity Federation) work
+
 concurrency:
   group: outreach-sheet   # never let two runs write the sheet at once
   cancel-in-progress: false
@@ -34,6 +38,14 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt
+      # Keyless Google login. Used when the repo variables GCP_WIF_PROVIDER and
+      # GCP_SERVICE_ACCOUNT are set (README "Google access without a key").
+      - name: Google auth (Workload Identity Federation)
+        if: ${{ vars.GCP_WIF_PROVIDER != '' }}
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: Run
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
@@ -63,12 +75,12 @@ jobs:
           else
             STEP="send"; ARGS=""
           fi
-          if [ "$STEP" != "jobs" ] && { [ -z "$SHEET_ID" ] || [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; }; then
+          if [ "$STEP" != "jobs" ] && { [ -z "$SHEET_ID" ] || { [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ] && [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; }; }; then
             if [ "${{ github.event_name }}" = "schedule" ]; then
-              echo "::notice::Skipped scheduled '$STEP' run: SHEET_ID / GOOGLE_SERVICE_ACCOUNT_JSON secrets are not set yet."
+              echo "::notice::Skipped scheduled '$STEP' run: SHEET_ID secret or Google credentials not set yet."
               exit 0
             fi
-            echo "::error::'$STEP' needs the SHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON secrets (Settings > Secrets and variables > Actions). Only the 'jobs' step works without secrets."
+            echo "::error::'$STEP' needs the SHEET_ID secret plus Google credentials: either the GCP_WIF_PROVIDER and GCP_SERVICE_ACCOUNT variables (keyless) or the GOOGLE_SERVICE_ACCOUNT_JSON secret. Only the 'jobs' step works without them."
             exit 1
           fi
           if [ "$STEP" = "jobs" ]; then

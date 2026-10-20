@@ -110,6 +110,38 @@ Push this folder to a **private** GitHub repo.
    This creates the `Prospects`, `Suppression`, `Config` and `Log` tabs, plus a status dropdown. The CSVs in `sheet_template/` show the same headers.
 5. In **Config**, fill in `BUSINESS_ADDRESS`, `SUMMARY_TO` and `PROOF_EXAMPLE` (one real past project; leave it empty and emails cite none), and check the sender fields.
 
+### 2b. Google access without a key (if key creation is blocked)
+
+If Google says "Service account key creation is disabled" (`iam.disableServiceAccountKeyCreation`), skip the JSON key. GitHub can log in as the service account directly with Workload Identity Federation. In [Cloud Shell](https://shell.cloud.google.com), run this, replacing the first two values:
+
+```bash
+PROJECT_ID=your-project-id
+SA=outreach-bot          # service account name (created if missing)
+REPO=hamidmalik99/designcrowdauto
+
+gcloud config set project $PROJECT_ID
+gcloud services enable sheets.googleapis.com drive.googleapis.com iamcredentials.googleapis.com sts.googleapis.com
+gcloud iam service-accounts create $SA --display-name="Outreach bot" 2>/dev/null || true
+gcloud iam workload-identity-pools create github --location=global --display-name="GitHub"
+gcloud iam workload-identity-pools providers create-oidc github-repo --location=global \
+  --workload-identity-pool=github --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository=='$REPO'"
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+gcloud iam service-accounts add-iam-policy-binding $SA@$PROJECT_ID.iam.gserviceaccount.com \
+  --role=roles/iam.workloadIdentityUser \
+  --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/$REPO"
+echo "GCP_WIF_PROVIDER = projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github-repo"
+echo "GCP_SERVICE_ACCOUNT = $SA@$PROJECT_ID.iam.gserviceaccount.com"
+```
+
+Then:
+1. Share the sheet with the printed service-account email as **Editor**.
+2. In GitHub → Settings → Secrets and variables → Actions → **Variables** tab, add `GCP_WIF_PROVIDER` and `GCP_SERVICE_ACCOUNT` with the two printed values. These are identifiers, not passwords.
+3. Add the `SHEET_ID` secret. Leave `GOOGLE_SERVICE_ACCOUNT_JSON` unset.
+
+The login only works for workflows in that one repo.
+
 ### 3. Brevo
 1. Authenticate your sending domain (SPF, DKIM, DMARC) in Brevo → Senders & Domains, and verify `SENDER_EMAIL`. Send from `hamidbuilds.dev`, not a gmail address.
 2. Create a v3 API key and set it as `BREVO_API_KEY`.

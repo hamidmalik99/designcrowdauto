@@ -6,7 +6,7 @@ listing and on every job page, one request every 5-10 s, stops on 403/429/captch
   python scripts/list_jobs.py                 # writes jobs.csv
   python scripts/list_jobs.py --max-pages 3 --out today.csv
 
-If SHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON are set, new jobs (by URL) are also
+If SHEET_ID and Google credentials are available, new jobs (by URL) are also
 appended to the sheet's "Jobs" tab.
 
 Reminder for the emails you write: never mention DesignCrowd, the contest or the
@@ -25,7 +25,7 @@ from bs4 import BeautifulSoup  # noqa: E402
 
 from config import CONFIG_DEFAULTS  # noqa: E402
 from discover import ANON_NAMES, parse_brief_fields  # noqa: E402
-from store import JOBS_HEADERS, iso  # noqa: E402
+from store import JOBS_HEADERS, google_creds_available, gspread_client, iso  # noqa: E402
 from web import Blocked, PoliteFetcher  # noqa: E402
 
 COLUMNS = ["business_name", "industry", "location", "website", "title", "url"]
@@ -79,13 +79,9 @@ def collect(fetcher, listing_tpl, brief_re, max_pages, log=print):
 
 def append_to_sheet(rows, sheet_id, sa_json, log=print) -> int:
     """Append jobs whose URL isn't already in the Jobs tab. Returns how many were added."""
-    import json
-
     import gspread
 
-    info = json.loads(sa_json) if sa_json.strip().startswith("{") else None
-    gc = gspread.service_account_from_dict(info) if info else gspread.service_account(filename=sa_json)
-    sh = gc.open_by_key(sheet_id)
+    sh = gspread_client(sa_json).open_by_key(sheet_id)
     try:
         ws = sh.worksheet("Jobs")
     except gspread.WorksheetNotFound:
@@ -120,7 +116,7 @@ def main():
     named = sum(1 for r in rows if r["business_name"])
     print(f"\nWrote {len(rows)} jobs ({named} name a business) to {args.out}")
     sheet_id, sa = os.getenv("SHEET_ID", ""), os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
-    if rows and sheet_id and sa:
+    if rows and sheet_id and google_creds_available(sa):
         append_to_sheet(rows, sheet_id, sa)
 
 

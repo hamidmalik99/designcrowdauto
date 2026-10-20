@@ -214,3 +214,19 @@ def test_list_jobs_collects_all_jobs_including_unnamed():
     assert rows[0]["business_name"] == "Harbour Plumbing Co" and rows[1]["business_name"] == ""
     assert "United States" in rows[1]["title"]
     assert list_jobs.collect(FakeFetcher(robots_ok=False), listing, _re.compile("x"), 3, log=lambda m: None) == []
+
+
+def test_gspread_client_uses_keyless_credentials(monkeypatch):
+    import google.auth
+    import gspread
+
+    import store
+    seen = {}
+    monkeypatch.setattr(google.auth, "default", lambda scopes: (seen.setdefault("scopes", scopes), "proj"))
+    monkeypatch.setattr(gspread, "authorize", lambda creds: ("client", creds))
+    assert store.gspread_client("")[0] == "client"
+    assert "https://www.googleapis.com/auth/spreadsheets" in seen["scopes"]
+    monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
+    assert not store.google_creds_available("")
+    monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/x.json")
+    assert store.google_creds_available("")

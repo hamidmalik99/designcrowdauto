@@ -62,6 +62,30 @@ def make_id(domain: str = "", business_name: str = "", location: str = "") -> st
     return hashlib.sha1(key.encode()).hexdigest()[:12]
 
 
+SHEETS_SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
+                 "https://www.googleapis.com/auth/drive"]
+
+
+def google_creds_available(service_account_json: str = "") -> bool:
+    return bool(service_account_json.strip() or os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+
+
+def gspread_client(service_account_json: str = ""):
+    """Service-account JSON (inline or a path) if given; otherwise Application Default
+    Credentials, e.g. the keyless Workload Identity Federation login set up by the
+    google-github-actions/auth step in GitHub Actions."""
+    import gspread
+
+    sa = service_account_json.strip()
+    if sa:
+        return gspread.service_account_from_dict(json.loads(sa)) if sa.startswith("{") \
+            else gspread.service_account(filename=sa)
+    import google.auth
+
+    creds, _ = google.auth.default(scopes=SHEETS_SCOPES)
+    return gspread.authorize(creds)
+
+
 class Store:
     """Interface. Rows are dicts with a private '_row' key (1-based sheet row)."""
 
@@ -156,12 +180,8 @@ class SheetStore(Store):
     well inside the Sheets API quota.
     """
 
-    def __init__(self, sheet_id: str, service_account_json: str):
-        import gspread
-
-        info = json.loads(service_account_json) if service_account_json.strip().startswith("{") else None
-        gc = gspread.service_account_from_dict(info) if info else gspread.service_account(filename=service_account_json)
-        self.sh = gc.open_by_key(sheet_id)
+    def __init__(self, sheet_id: str, service_account_json: str = ""):
+        self.sh = gspread_client(service_account_json).open_by_key(sheet_id)
         self.ws = {t: self.sh.worksheet(t) for t in ("Prospects", "Suppression", "Config", "Log")}
         self._pending: list[dict] = []
         self._load()

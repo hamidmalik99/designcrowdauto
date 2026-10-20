@@ -4,16 +4,14 @@
 
 Safe to re-run: existing data and Config values are never overwritten.
 """
-import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import gspread  # noqa: E402
-
 from config import CONFIG_DEFAULTS, Secrets  # noqa: E402
-from store import CONFIG_HEADERS, JOBS_HEADERS, LOG_HEADERS, PROSPECT_HEADERS, SUPPRESSION_HEADERS  # noqa: E402
+from store import (CONFIG_HEADERS, JOBS_HEADERS, LOG_HEADERS, PROSPECT_HEADERS,  # noqa: E402
+                   SUPPRESSION_HEADERS, gspread_client)
 
 STATUSES = ["new", "researched", "skipped", "queued", "approved", "sent", "followup_1", "followup_2",
             "replied", "bounced", "unsubscribed", "done"]
@@ -30,9 +28,7 @@ NOTES = {
 
 def main():
     s = Secrets()
-    info = json.loads(s.google_service_account_json) if s.google_service_account_json.strip().startswith("{") else None
-    gc = gspread.service_account_from_dict(info) if info else gspread.service_account(filename=s.google_service_account_json)
-    sh = gc.open_by_key(s.sheet_id)
+    sh = gspread_client(s.google_service_account_json).open_by_key(s.sheet_id)
     existing = {w.title: w for w in sh.worksheets()}
     for title, headers in [("Prospects", PROSPECT_HEADERS), ("Suppression", SUPPRESSION_HEADERS),
                            ("Config", CONFIG_HEADERS), ("Log", LOG_HEADERS), ("Jobs", JOBS_HEADERS)]:

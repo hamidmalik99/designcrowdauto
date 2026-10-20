@@ -21,14 +21,15 @@ import send
 import summary
 import write
 from config import Secrets, Settings
-from store import LocalStore, SheetStore, Store, iso
+from store import LocalStore, SheetStore, Store, google_creds_available, iso
 
 
 def open_store(args, secrets: Secrets) -> Store:
     if args.local:
         return LocalStore(args.local)
-    if not (secrets.sheet_id and secrets.google_service_account_json):
-        sys.exit("SHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON must be set (or use --local state.json)")
+    if not (secrets.sheet_id and google_creds_available(secrets.google_service_account_json)):
+        sys.exit("SHEET_ID plus Google credentials (GOOGLE_SERVICE_ACCOUNT_JSON, or keyless "
+                 "Workload Identity Federation) must be set (or use --local state.json)")
     return SheetStore(secrets.sheet_id, secrets.google_service_account_json)
 
 
